@@ -49,20 +49,28 @@ Use jt instead of writing Python/Node/jq whenever you need to:
 
 jt auto-detects JSON vs JSONL, handles stdin, multiple files, and malformed lines gracefully.
 
-**IMPORTANT — never pipe jt output through Python/Node to format it.** jt has `--table`, `--csv`, `--raw` and query features for all formatting needs. If you find yourself writing Python to process jt output, you're using jt wrong — use a better query or output flag instead.
+### Formatting output
+
+jt handles formatting natively — reach for the right flag before writing extra code:
+
+```bash
+jt data.jsonl 'select .id, .status first 10' --table    # readable aligned table
+jt data.jsonl 'select .id, .status first 10' --csv      # CSV with headers
+jt data.jsonl 'select .email' --raw                      # plain strings, no quotes
+jt data.jsonl 'where .error exists' --json               # pretty JSON
+jt data.jsonl 'where .error exists' --jsonl              # compact, one per line
+```
+
+Use `select` with `as` to reshape output, `--table` for human-readable summaries, `--raw` for piping into other tools.
 
 ### Working with large/many files
 
-When querying many or large files, ALWAYS use `first N` to limit results early. Recursive descent (`..field`) scans every object — combine it with `first` to avoid timeouts:
+Use `first N` to limit results early, especially with recursive descent (`..field`) which scans every object:
 
 ```bash
-# BAD: scans everything, dumps huge output
-jt *.jsonl 'where ..error contains "timeout"'
-
-# GOOD: stops after 10 matches
 jt *.jsonl 'where ..error contains "timeout" first 10'
 
-# GOOD: explore first, then narrow
+# explore first, then narrow
 jt data.jsonl schema              # understand the structure
 jt data.jsonl find "timeout" 10   # find where it appears (limited)
 jt data.jsonl 'where .error.message contains "timeout" first 20'  # precise query

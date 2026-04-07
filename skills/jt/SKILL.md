@@ -15,7 +15,17 @@ description: >
 `jt` is a fast CLI for querying and exploring JSON/JSONL data. It replaces throwaway Python scripts
 and complex jq pipelines with readable, SQL-like queries and built-in data exploration commands.
 
-Install: `go install github.com/inference-sh/jt@latest`
+## Install
+
+```bash
+# One-liner (downloads precompiled binary, no Go required)
+curl -fsSL https://raw.githubusercontent.com/inference-sh/jt/main/install.sh | sh
+
+# Or with Go
+go install github.com/inference-sh/jt/cmd/jt@latest
+```
+
+Custom install directory: `JT_INSTALL_DIR=~/.local/bin curl -fsSL ... | sh`
 
 ## Reference files
 

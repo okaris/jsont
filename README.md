@@ -37,6 +37,14 @@ jt data.jsonl 'where .error exists' --csv > errors.csv
 
 Both `jsont` and `jt` work identically — use whichever you prefer.
 
+## Teach it to your AI agent
+
+```bash
+npx skills add okaris/jsont
+```
+
+Adds the jsont skill to Claude Code (or any compatible agent), so it uses `jt` instead of writing throwaway scripts when working with JSON data.
+
 See [SPEC.md](SPEC.md) for the full language reference.
 
 ## License

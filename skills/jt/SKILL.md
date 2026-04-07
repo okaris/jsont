@@ -19,10 +19,10 @@ and complex jq pipelines with readable, SQL-like queries and built-in data explo
 
 ```bash
 # One-liner (downloads precompiled binary, no Go required)
-curl -fsSL https://raw.githubusercontent.com/inference-sh/jt/main/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/okaris/jt/main/install.sh | sh
 
 # Or with Go
-go install github.com/inference-sh/jt/cmd/jt@latest
+go install github.com/okaris/jt/cmd/jt@latest
 ```
 
 Custom install directory: `JT_INSTALL_DIR=~/.local/bin curl -fsSL ... | sh`

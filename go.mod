@@ -1,3 +1,3 @@
-module github.com/inference-sh/jt
+module github.com/okaris/jt
 
 go 1.25.6

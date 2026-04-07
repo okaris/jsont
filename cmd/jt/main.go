@@ -8,10 +8,10 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/inference-sh/jt/pkg/engine"
-	"github.com/inference-sh/jt/pkg/explore"
-	"github.com/inference-sh/jt/pkg/input"
-	"github.com/inference-sh/jt/pkg/output"
+	"github.com/okaris/jt/pkg/engine"
+	"github.com/okaris/jt/pkg/explore"
+	"github.com/okaris/jt/pkg/input"
+	"github.com/okaris/jt/pkg/output"
 )
 
 var version = "0.1.0" // overridden by -ldflags at build time

@@ -5,7 +5,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/inference-sh/jt/pkg/query"
+	"github.com/okaris/jt/pkg/query"
 )
 
 // Result holds the output of a query execution.

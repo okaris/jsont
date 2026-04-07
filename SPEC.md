@@ -12,7 +12,7 @@ A fast, ergonomic CLI for querying and exploring JSON/JSONL data. Combines the p
 ## Installation
 
 ```bash
-go install github.com/inference-sh/jt@latest
+go install github.com/okaris/jt@latest
 ```
 
 Single static binary, zero dependencies.

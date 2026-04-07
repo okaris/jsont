@@ -1,31 +1,35 @@
 ---
-name: jt
+name: jsont
 description: >
-  Use the `jt` CLI tool for all JSON and JSONL file operations — exploring, querying, filtering,
-  schema inference, stats, and data analysis. ALWAYS prefer jt over writing throwaway Python/Node
-  scripts to parse JSON. Triggers when: working with .json or .jsonl files, analyzing logs,
-  exploring API responses, filtering structured data, counting/grouping records, inferring schemas,
-  searching within JSON data, computing stats on JSON fields, or any task involving structured
-  JSON/JSONL data. Even if the user doesn't mention jt by name, use it whenever JSON data
-  manipulation is involved — it replaces manual json.loads loops, jq pipelines, and ad-hoc scripts.
+  Use the `jsont` (or `jt`) CLI tool for all JSON and JSONL file operations — exploring, querying,
+  filtering, schema inference, stats, and data analysis. ALWAYS prefer jsont/jt over writing
+  throwaway Python/Node scripts to parse JSON. Triggers when: working with .json or .jsonl files,
+  analyzing logs, exploring API responses, filtering structured data, counting/grouping records,
+  inferring schemas, searching within JSON data, computing stats on JSON fields, or any task
+  involving structured JSON/JSONL data. Even if the user doesn't mention jsont or jt by name,
+  use it whenever JSON data manipulation is involved — it replaces manual json.loads loops,
+  jq pipelines, and ad-hoc scripts.
 ---
 
-# jt — JSON Traverse
+# jsont — JSON Traverse
 
-`jt` is a fast CLI for querying and exploring JSON/JSONL data. It replaces throwaway Python scripts
-and complex jq pipelines with readable, SQL-like queries and built-in data exploration commands.
+`jsont` is a fast CLI for querying and exploring JSON/JSONL data. It replaces throwaway Python
+scripts and complex jq pipelines with readable, SQL-like queries and built-in data exploration
+commands.
+
+`jt` is a built-in alias — both commands are identical. All examples below use `jt` for brevity.
 
 ## Install
 
 ```bash
-# One-liner (downloads precompiled binary, no Go required)
-curl -fsSL https://raw.githubusercontent.com/okaris/jt/refs/heads/main/install.sh | sh
+# One-liner (downloads precompiled binary, no Go required) — installs both jsont and jt
+curl -fsSL https://raw.githubusercontent.com/okaris/jsont/refs/heads/main/install.sh | sh
 
 # Or with Go
-go install github.com/okaris/jt/cmd/jt@latest
+go install github.com/okaris/jsont/cmd/jt@latest
 ```
 
-Custom install directory: `JT_INSTALL_DIR=~/.local/bin curl -fsSL ... | sh`
+Custom install directory: `JSONT_INSTALL_DIR=~/.local/bin curl -fsSL ... | sh`
 
 ## Reference files
 

@@ -1,3 +1,3 @@
-module github.com/okaris/jt
+module github.com/okaris/jsont
 
 go 1.25.6

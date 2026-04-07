@@ -1,12 +1,11 @@
 #!/bin/sh
 set -e
 
-# jt installer — downloads the latest precompiled binary from GitHub releases
-# Usage: curl -fsSL https://raw.githubusercontent.com/okaris/jt/refs/heads/main/install.sh | sh
+# jsont installer — downloads the latest precompiled binary from GitHub releases
+# Usage: curl -fsSL https://raw.githubusercontent.com/okaris/jsont/refs/heads/main/install.sh | sh
 
-REPO="okaris/jt"
-INSTALL_DIR="${JT_INSTALL_DIR:-/usr/local/bin}"
-BINARY="jt"
+REPO="okaris/jsont"
+INSTALL_DIR="${JSONT_INSTALL_DIR:-/usr/local/bin}"
 
 # Detect OS
 OS="$(uname -s)"
@@ -33,14 +32,14 @@ if [ -z "$LATEST" ]; then
   exit 1
 fi
 
-echo "Installing jt ${LATEST} (${OS}/${ARCH})..."
+echo "Installing jsont ${LATEST} (${OS}/${ARCH})..."
 
 # Build download URL
 EXT=""
 if [ "$OS" = "windows" ]; then
   EXT=".exe"
 fi
-FILENAME="jt-${OS}-${ARCH}${EXT}"
+FILENAME="jsont-${OS}-${ARCH}${EXT}"
 URL="https://github.com/${REPO}/releases/download/${LATEST}/${FILENAME}"
 
 # Download
@@ -51,14 +50,17 @@ if ! curl -fsSL "$URL" -o "$TMPFILE"; then
   exit 1
 fi
 
-# Install
+# Install binary as jsont
 chmod +x "$TMPFILE"
 if [ -w "$INSTALL_DIR" ]; then
-  mv "$TMPFILE" "${INSTALL_DIR}/${BINARY}${EXT}"
+  mv "$TMPFILE" "${INSTALL_DIR}/jsont${EXT}"
+  ln -sf "${INSTALL_DIR}/jsont${EXT}" "${INSTALL_DIR}/jt${EXT}"
 else
   echo "Need sudo to install to ${INSTALL_DIR}"
-  sudo mv "$TMPFILE" "${INSTALL_DIR}/${BINARY}${EXT}"
+  sudo mv "$TMPFILE" "${INSTALL_DIR}/jsont${EXT}"
+  sudo ln -sf "${INSTALL_DIR}/jsont${EXT}" "${INSTALL_DIR}/jt${EXT}"
 fi
 
-echo "Installed jt ${LATEST} to ${INSTALL_DIR}/${BINARY}${EXT}"
-jt --version 2>/dev/null || true
+echo "Installed jsont ${LATEST} to ${INSTALL_DIR}/jsont${EXT}"
+echo "Alias: jt -> jsont"
+jsont --version 2>/dev/null || true

@@ -39,13 +39,13 @@ jobs:
         run: |
           EXT=""
           if [ "$GOOS" = "windows" ]; then EXT=".exe"; fi
-          CGO_ENABLED=0 go build -ldflags="-s -w -X main.version=${{ github.ref_name }}" -o "jt-${GOOS}-${GOARCH}${EXT}" ./cmd/jt/
+          CGO_ENABLED=0 go build -ldflags="-s -w -X main.version=${{ github.ref_name }}" -o "jsont-${GOOS}-${GOARCH}${EXT}" ./cmd/jt/
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: jt-${{ matrix.goos }}-${{ matrix.goarch }}
-          path: jt-*
+          name: jsont-${{ matrix.goos }}-${{ matrix.goarch }}
+          path: jsont-*
 
   release:
     needs: build

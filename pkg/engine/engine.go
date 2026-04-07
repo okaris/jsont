@@ -5,7 +5,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/okaris/jt/pkg/query"
+	"github.com/okaris/jsont/pkg/query"
 )
 
 // Result holds the output of a query execution.

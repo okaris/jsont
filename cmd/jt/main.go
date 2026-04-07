@@ -8,10 +8,10 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/okaris/jt/pkg/engine"
-	"github.com/okaris/jt/pkg/explore"
-	"github.com/okaris/jt/pkg/input"
-	"github.com/okaris/jt/pkg/output"
+	"github.com/okaris/jsont/pkg/engine"
+	"github.com/okaris/jsont/pkg/explore"
+	"github.com/okaris/jsont/pkg/input"
+	"github.com/okaris/jsont/pkg/output"
 )
 
 var version = "0.1.0" // overridden by -ldflags at build time

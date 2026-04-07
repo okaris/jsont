@@ -129,10 +129,13 @@ jt data.jsonl fields | wc -l
 ## find
 
 ```bash
-jt data.jsonl find "search text"
+jt data.jsonl find "search text"        # returns up to 20 matches (default)
+jt data.jsonl find "search text" 50     # returns up to 50 matches
 ```
 
 Full-text search across all values in all objects. Reports where each match was found.
+
+**Default limit: 20 results.** Pass a number after the pattern to override. This prevents accidentally dumping huge output on large files.
 
 ### Output format
 
@@ -144,6 +147,7 @@ Full-text search across all values in all objects. Reports where each match was 
 ### Behavior
 
 - **Case-insensitive** by default
+- **Limited to 20 results** by default (pass N to override)
 - Searches all string values at any nesting depth
 - Searches inside arrays (checks each element)
 - Reports the object index, the exact dot-path, and the matching value
@@ -260,3 +264,5 @@ Without explicit format flags:
 - `head`, `tail`, `sample` → pretty JSON (TTY) or JSONL (pipe)
 - `schema`, `tree`, `fields`, `find`, `stats` → custom text rendering (TTY and pipe)
 - `count` → plain integer
+
+**Table output note:** `--table` truncates cell values to 80 characters (with `...`) and strips newlines. This keeps tables readable even with large nested objects. Use `--json` if you need full untruncated values.

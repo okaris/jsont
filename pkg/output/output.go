@@ -154,6 +154,19 @@ func formatTable(w io.Writer, objects []any) error {
 		rows[i] = objectToRow(obj, keys)
 	}
 
+	// Truncate long cell values and strip newlines
+	const maxCellWidth = 80
+	for i, row := range rows {
+		for j, cell := range row {
+			cell = strings.ReplaceAll(cell, "\n", " ")
+			cell = strings.ReplaceAll(cell, "\r", "")
+			if len(cell) > maxCellWidth {
+				cell = cell[:maxCellWidth-3] + "..."
+			}
+			rows[i][j] = cell
+		}
+	}
+
 	// Calculate column widths
 	widths := make([]int, len(keys))
 	for i, k := range keys {

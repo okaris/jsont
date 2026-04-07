@@ -116,10 +116,16 @@ func run(args []string) error {
 		return runFields(objects, f, outOpts)
 	case "find":
 		pattern := ""
+		findLimit := 20 // sensible default
 		if len(rest) > 1 {
 			pattern = rest[1]
 		}
-		return runFind(objects, pattern, f, outOpts)
+		if len(rest) > 2 {
+			if parsed, err := strconv.Atoi(rest[2]); err == nil && parsed > 0 {
+				findLimit = parsed
+			}
+		}
+		return runFind(objects, pattern, findLimit, f, outOpts)
 	case "stats":
 		return runStats(objects, f, outOpts)
 	case "head":
@@ -345,11 +351,11 @@ func runFields(objects []any, f flags, outOpts output.Opts) error {
 	return nil
 }
 
-func runFind(objects []any, pattern string, f flags, outOpts output.Opts) error {
+func runFind(objects []any, pattern string, limit int, f flags, outOpts output.Opts) error {
 	if pattern == "" {
 		return fmt.Errorf("find requires a search pattern")
 	}
-	results := explore.Find(objects, pattern, explore.FindOpts{CaseInsensitive: true})
+	results := explore.Find(objects, pattern, explore.FindOpts{CaseInsensitive: true, First: limit})
 	if f.formatSet {
 		items := make([]any, len(results))
 		for i, r := range results {
@@ -589,7 +595,7 @@ Explore commands:
   jt data.jsonl schema             Infer schema
   jt data.jsonl tree               Structural overview
   jt data.jsonl fields             List all field paths
-  jt data.jsonl find "text"        Full-text search
+  jt data.jsonl find "text" [N]    Full-text search (default 20 results)
   jt data.jsonl stats              Statistical summary
   jt data.jsonl head [N]           First N objects (default 5)
   jt data.jsonl tail [N]           Last N objects (default 5)

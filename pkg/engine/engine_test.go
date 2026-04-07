@@ -983,6 +983,121 @@ func TestExecuteEmptyInput(t *testing.T) {
 	}
 }
 
+func TestExecuteLimitOffset(t *testing.T) {
+	objects := parseObjects(t, peopleData)
+
+	tests := []struct {
+		name      string
+		query     string
+		wantCount int
+		wantFirst string // expected id of first result
+		wantLast  string // expected id of last result
+	}{
+		{
+			name:      "first 2",
+			query:     "first 2",
+			wantCount: 2,
+			wantFirst: "1",
+			wantLast:  "2",
+		},
+		{
+			name:      "last 2",
+			query:     "last 2",
+			wantCount: 2,
+			wantFirst: "4",
+			wantLast:  "5",
+		},
+		{
+			name:      "first 1 returns one",
+			query:     "first 1",
+			wantCount: 1,
+			wantFirst: "1",
+		},
+		{
+			name:      "first larger than total returns all",
+			query:     "first 100",
+			wantCount: 5,
+		},
+		{
+			name:      "where with first",
+			query:     `where .status == "active" first 2`,
+			wantCount: 2,
+			wantFirst: "1",
+			wantLast:  "3",
+		},
+		{
+			name:      "where with last",
+			query:     `where .status == "active" last 1`,
+			wantCount: 1,
+			wantFirst: "4",
+		},
+		{
+			name:      "sort by with first",
+			query:     "sort by .age desc first 3",
+			wantCount: 3,
+			wantFirst: "3", // Charlie, age 35
+			wantLast:  "4", // Diana, age 28
+		},
+		{
+			name:      "select with first",
+			query:     "select .id, .name first 2",
+			wantCount: 2,
+		},
+		{
+			name:      "count by with sort and first",
+			query:     `count by .status sort by count desc first 1`,
+			wantCount: 1,
+		},
+		{
+			name:      "distinct with first",
+			query:     "distinct .status first 1",
+			wantCount: 1,
+		},
+		{
+			name:      "where + select + sort + first combined",
+			query:     `select .id, .age where .active == true sort by .age first 2`,
+			wantCount: 2,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result, err := Execute(objects, tt.query, EngineOpts{})
+			if err != nil {
+				t.Fatalf("Execute(%q) returned error: %v", tt.query, err)
+			}
+			if len(result.Objects) != tt.wantCount {
+				t.Errorf("Execute(%q) returned %d results, want %d", tt.query, len(result.Objects), tt.wantCount)
+			}
+			if tt.wantFirst != "" && len(result.Objects) > 0 {
+				first := extractID(result.Objects[0])
+				if first != tt.wantFirst {
+					t.Errorf("Execute(%q) first result id=%q, want %q", tt.query, first, tt.wantFirst)
+				}
+			}
+			if tt.wantLast != "" && len(result.Objects) > 1 {
+				last := extractID(result.Objects[len(result.Objects)-1])
+				if last != tt.wantLast {
+					t.Errorf("Execute(%q) last result id=%q, want %q", tt.query, last, tt.wantLast)
+				}
+			}
+		})
+	}
+}
+
+func extractID(obj any) string {
+	switch v := obj.(type) {
+	case map[string]any:
+		if id, ok := v["id"]; ok {
+			return fmt.Sprintf("%v", id)
+		}
+		if key, ok := v["key"]; ok {
+			return fmt.Sprintf("%v", key)
+		}
+	}
+	return ""
+}
+
 func TestExecuteOpts(t *testing.T) {
 	// Ensure opts are accepted without error — behavior depends on implementation
 	objects := parseObjects(t, peopleData[:1])

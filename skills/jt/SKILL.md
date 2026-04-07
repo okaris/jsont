@@ -49,6 +49,25 @@ Use jt instead of writing Python/Node/jq whenever you need to:
 
 jt auto-detects JSON vs JSONL, handles stdin, multiple files, and malformed lines gracefully.
 
+**IMPORTANT — never pipe jt output through Python/Node to format it.** jt has `--table`, `--csv`, `--raw` and query features for all formatting needs. If you find yourself writing Python to process jt output, you're using jt wrong — use a better query or output flag instead.
+
+### Working with large/many files
+
+When querying many or large files, ALWAYS use `first N` to limit results early. Recursive descent (`..field`) scans every object — combine it with `first` to avoid timeouts:
+
+```bash
+# BAD: scans everything, dumps huge output
+jt *.jsonl 'where ..error contains "timeout"'
+
+# GOOD: stops after 10 matches
+jt *.jsonl 'where ..error contains "timeout" first 10'
+
+# GOOD: explore first, then narrow
+jt data.jsonl schema              # understand the structure
+jt data.jsonl find "timeout" 10   # find where it appears (limited)
+jt data.jsonl 'where .error.message contains "timeout" first 20'  # precise query
+```
+
 ---
 
 ## Explore Commands
@@ -90,7 +109,8 @@ Flat sorted list, one path per line. Includes nested paths (`.error.message`) an
 ### find — Full-text search across all values
 
 ```bash
-jt data.jsonl find "timeout"           # case-insensitive by default
+jt data.jsonl find "timeout"           # case-insensitive, returns up to 20 matches
+jt data.jsonl find "timeout" 50        # return up to 50 matches
 jt nested.jsonl find "error"           # searches at any nesting depth
 ```
 

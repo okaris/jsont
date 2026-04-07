@@ -34,8 +34,9 @@ go install github.com/okaris/jsont/cmd/jt@latest
 ## Reference files
 
 For detailed behavior beyond this guide, read these as needed:
-- `references/query-language.md` — Full operator precedence, all operators with type behavior, all functions with signatures and return types, dot-path edge cases, type coercion rules. Read this when constructing complex queries with multiple operators, using lesser-known functions, or when exact type/null behavior matters.
-- `references/explore-commands.md` — Detailed output formats for each explore command, sampling behavior, JSON output mode, and all options. Read this when you need to understand exactly what schema/stats/find will output or how explore commands interact with output format flags.
+- `references/large-data-playbook.md` — Step-by-step guide for working with large/many files. Anti-patterns to avoid, common task recipes, output format cheat sheet. **Read this first when dealing with big or unfamiliar datasets.**
+- `references/query-language.md` — Full operator precedence, all operators with type behavior, all functions with signatures and return types, dot-path edge cases, type coercion rules. Read when constructing complex queries.
+- `references/explore-commands.md` — Detailed output formats for each explore command, sampling behavior, JSON output mode. Read when you need precise details on what a command outputs.
 
 ## When to use jt
 
@@ -72,17 +73,19 @@ jt data.jsonl 'select .email' --raw                      # plain strings, no quo
 jt data.jsonl 'where .error exists first 10' --json      # pretty JSON
 ```
 
-### Working with large/many files
+### Large data playbook
 
-Use `first N` to limit results early, especially with `where` queries that use recursive descent (`..field`):
+For many files or unfamiliar data: **schema → find → targeted query**. Each is one tool call.
 
 ```bash
-# find is already limited by default (20 results) — safe on large datasets
-jt *.jsonl find "timeout"
-
-# where queries need explicit limits on large data
-jt *.jsonl 'where .error.message contains "timeout" first 20'
+jt data.jsonl schema                                                        # 1. what fields exist?
+jt data.jsonl find "error"                                                  # 2. where does it appear? (20 results, truncated)
+jt data.jsonl 'where .error.message contains "timeout" select .id, .error.message first 20' --table  # 3. precise query
 ```
+
+Always use `first N` with `where` on large data. `find` is already limited by default.
+
+See `references/large-data-playbook.md` for the full guide — anti-patterns, output format cheat sheet, and common task recipes.
 
 ---
 

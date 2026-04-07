@@ -1,0 +1,1 @@
+{"id": "item_1", "name": "Alice", "age": 30, "email": "alice@example.com", "tags": ["admin", "user"], "address": {"city": "Portland", "state": "OR", "zip": "97201"}, "scores": [95, 87, 92]}

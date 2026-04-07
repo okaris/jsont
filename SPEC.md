@@ -259,13 +259,45 @@ jt data.jsonl '.name, .age'              # same as: select .name, .age
 .field                    — object field
 .field.nested             — nested access
 .field[0]                 — array index
+.field[2:5]               — array slice (index 2 to 4)
+.field[-3:]               — last 3 elements
+.field[:2]                — first 2 elements
 .field[]                  — iterate array elements
 .field[].nested           — nested inside each element
+..field                   — recursive descent: find .field at any depth
+.."field"                 — recursive descent with quoted key
 ."field with spaces"      — quoted field name
 .field | length           — pipe to function
 ```
 
 Accessing a missing field returns `null`, never errors.
+
+#### Recursive descent
+
+The `..` operator searches for a key at any nesting depth. This is one of jq's most powerful features, fully supported:
+
+```bash
+# find all "error" fields anywhere in the structure
+jt data.jsonl '..error'
+
+# filter on deeply nested fields without knowing the exact path
+jt data.jsonl 'where ..status == "failed"'
+
+# combine with other expressions
+jt data.jsonl 'select ..message where ..code == 429'
+```
+
+When `..field` matches multiple locations in a single object, all matches are returned (the object is emitted once per match, or as an array if used in `select`).
+
+#### Array slicing
+
+Python-style slicing for arrays:
+
+```bash
+jt data.json '.items[0:3]'          # first 3 elements
+jt data.json '.items[-2:]'          # last 2 elements
+jt data.json '.items[::2]'          # every other element (step=2)
+```
 
 ### select
 
@@ -285,6 +317,14 @@ Computed fields:
 
 ```bash
 jt data.jsonl 'select .id, .end - .start as duration'
+jt data.jsonl 'select .id, .price * .quantity as total'
+```
+
+String templates:
+
+```bash
+jt data.jsonl 'select "\(.first) \(.last)" as full_name, .email'
+jt data.jsonl 'select "\(.city), \(.state) \(.zip)" as address'
 ```
 
 Wildcards:
@@ -305,7 +345,20 @@ jt data.jsonl 'where .error exists'
 jt data.jsonl 'where .tags contains "urgent"'
 ```
 
-#### Operators
+#### Arithmetic operators
+
+Usable in `select` expressions, `where` conditions, and function arguments.
+
+| Operator | Example | Notes |
+|---|---|---|
+| `+` | `.a + .b`, `"hello" + " world"` | Addition, string concatenation |
+| `-` | `.end - .start` | Subtraction |
+| `*` | `.price * .qty` | Multiplication |
+| `/` | `.total / .count` | Division |
+| `%` | `.index % 2` | Modulo |
+| `-` (unary) | `-(.balance)` | Negation |
+
+#### Comparison and logical operators
 
 | Operator | Example | Notes |
 |---|---|---|
@@ -408,6 +461,14 @@ Usable anywhere an expression is expected.
 
 | Function | Description |
 |---|---|
+| `abs(expr)` | Absolute value |
+| `floor(expr)` | Round down |
+| `ceil(expr)` | Round up |
+| `round(expr)` | Round to nearest integer |
+| `round(expr, N)` | Round to N decimal places |
+| `log(expr)` | Natural log |
+| `pow(a, b)` | Exponentiation |
+| `sqrt(expr)` | Square root |
 | `length(expr)` | String length or array length |
 | `keys(expr)` | Object keys as array |
 | `values(expr)` | Object values as array |
@@ -636,3 +697,53 @@ Ship a useful tool fast. v0.1 includes:
 - percentile functions (p50, p95, p99)
 - `limit`/`offset`
 - `json_parse()`, `time()` functions
+
+---
+
+## Gap Analysis: jt vs jq
+
+jq is a Turing-complete functional language. jt intentionally does not replicate its full programming model. This section documents what jq can do that jt cannot, for future consideration.
+
+### Covered by jt (with better syntax)
+
+| jq | jt | Notes |
+|---|---|---|
+| `.foo.bar` | `.foo.bar` | Identical |
+| `.[] \| select(.x > 1)` | `where .x > 1` | SQL-like |
+| `[.[] \| .name]` | `select .name` | Implicit collection |
+| `group_by(.x) \| map({k:.[0].x, n:length})` | `count by .x` | One clause vs pipeline |
+| `sort_by(.x)` | `sort by .x` | Readable |
+| `unique_by(.x)` | `distinct .x` | Readable |
+| `..` (recursive descent) | `..field` | Supported |
+| `.[2:5]` | `.[2:5]` | Supported |
+| `\(.x) is \(.y)` (interpolation) | `"\(.x) is \(.y)"` | Supported |
+| `+`, `-`, `*`, `/` | `+`, `-`, `*`, `/` | Supported |
+| `floor`, `ceil`, `round` | `floor()`, `ceil()`, `round()` | Supported |
+| `.x // "default"` (alternative) | `coalesce(.x, "default")` | Supported |
+| `if-then-else` | `if(cond, then, else)` | Function form |
+| `length`, `keys`, `values` | `length()`, `keys()`, `values()` | Supported |
+| `test("regex")` | `matches /regex/` | Supported |
+| `type` | `type()` | Supported |
+| `@csv`, `@tsv` | `--csv`, `--tsv` | Output flags |
+
+### NOT covered — intentional gaps (may revisit)
+
+| jq Feature | What it does | Why jt skips it | Workaround |
+|---|---|---|---|
+| **Variable binding** `as $var` | Bind intermediate results: `.x as $v \| .y + $v` | Adds programming language complexity | Use computed fields with `as` aliases in select |
+| **Reduce** | `reduce .[] as $x (0; . + $x)` — general fold | jt has `sum()`, `count()`, `avg()` for common cases | Use aggregate functions; pipe to jq for custom reduce |
+| **User-defined functions** | `def double: . * 2; .items[] \| double` | jt is a query tool, not a programming language | Write the expression inline |
+| **Update expressions** | `.foo \|= . + 1` — modify in place | jt is read-only by design | Pipe jt output through jq for transforms |
+| **Recursive rewrite** | `walk(if type == "string" then ascii_downcase else . end)` | Deep structural transforms aren't queries | Pipe to jq |
+| **Try/catch** | `try .foo.bar catch "n/a"` | jt already returns null for missing paths | `coalesce(.foo.bar, "n/a")` |
+| **Label/break** | `label $out \| foreach .[] as $x (...)` | Control flow for streaming programs | Not applicable to query model |
+| **`@base64`/`@uri`/`@html`** | Format strings as base64, URI, HTML | Rare in data exploration | Pipe to standard tools |
+| **`env`** | Access environment variables | Out of scope | Use shell: `jt data.jsonl "where .key == \"$VAR\""` |
+| **`input`/`inputs`** | Read additional inputs during processing | jt handles multi-file natively | Use multiple file args |
+| **Object construction** `{a,b}` | Build new objects from scratch: `{id: .foo, sum: (.a+.b)}` | `select .foo as id, .a + .b as sum` covers most cases | For complex reshaping, pipe to jq |
+
+### The line
+
+jt's position: **if it reads like a query, jt does it. If it reads like a program, use jq.**
+
+The moment you need variables, loops, recursion, or structural transforms — that's jq territory. jt should never become a second jq. Instead, jt should be so good at the query/explore use case that you reach for jq 10x less often.

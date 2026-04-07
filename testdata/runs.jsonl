@@ -1,0 +1,10 @@
+{"id":"run_001","model":"gpt-4","status":"ok","latency_ms":142,"message":{"role":"user","content":"hello world"},"metadata":{"tags":["prod"],"region":"us-east"}}
+{"id":"run_002","model":"claude-3","status":"failed","latency_ms":3201,"error":{"message":"connection timeout","code":429},"message":{"role":"assistant","content":"I apologize"},"metadata":{"tags":["prod","urgent"],"region":"eu-west"}}
+{"id":"run_003","model":"gpt-4","status":"ok","latency_ms":89,"message":{"role":"user","content":"tell me a joke"},"metadata":{"tags":["staging"],"region":"us-east"}}
+{"id":"run_004","model":"mixtral","status":"failed","latency_ms":5400,"error":{"message":"rate limit exceeded","code":429},"message":{"role":"assistant","content":"Let me help"},"metadata":{"tags":["prod"],"region":"ap-south"}}
+{"id":"run_005","model":"claude-3","status":"ok","latency_ms":201,"message":{"role":"user","content":"what is the timeout setting?"},"metadata":{"tags":["staging"],"region":"us-east"}}
+{"id":"run_006","model":"gpt-4","status":"pending","latency_ms":0,"message":{"role":"user","content":"pending request"},"metadata":null}
+{"id":"run_007","model":"claude-3","status":"ok","latency_ms":178,"message":{"role":"assistant","content":[{"type":"text","text":"Here is the answer"},{"type":"text","text":"with multiple parts"}]},"metadata":{"tags":["prod"],"region":"eu-west"}}
+{"id":"run_008","model":"mixtral","status":"failed","latency_ms":8320,"error":{"message":"upstream timeout after 8s","code":503},"message":{"role":"assistant","content":"Processing"},"metadata":{"tags":["prod","critical"],"region":"us-east"}}
+{"id":"run_009","model":"gpt-4","status":"ok","latency_ms":156,"message":{"role":"user","content":"simple request"},"metadata":{"tags":[],"region":"us-east"}}
+{"id":"run_010","model":"claude-3","status":"ok","latency_ms":312,"message":{"role":"assistant","content":"Final response"},"metadata":{"tags":["prod"],"region":"ap-south"}}

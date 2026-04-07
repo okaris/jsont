@@ -78,10 +78,14 @@ func run(args []string) error {
 		return fmt.Errorf("no input files (file %q not found)", rest[0])
 	}
 
-	// Read all objects.
-	objects, err := readAll(files, f)
+	// Read all objects (with metadata for find --show-file).
+	metaObjects, err := readAllWithMeta(files, f)
 	if err != nil {
 		return err
+	}
+	objects := make([]any, len(metaObjects))
+	for i, mo := range metaObjects {
+		objects[i] = mo.Value
 	}
 
 	// Determine output format.
@@ -125,7 +129,7 @@ func run(args []string) error {
 				findLimit = parsed
 			}
 		}
-		return runFind(objects, pattern, findLimit, f, outOpts)
+		return runFindWithMeta(metaObjects, pattern, findLimit, f, outOpts)
 	case "stats":
 		return runStats(objects, f, outOpts)
 	case "head":
@@ -392,6 +396,63 @@ func runFind(objects []any, pattern string, limit int, f flags, outOpts output.O
 	return nil
 }
 
+func runFindWithMeta(metaObjects []input.Object, pattern string, limit int, f flags, outOpts output.Opts) error {
+	if pattern == "" {
+		return fmt.Errorf("find requires a search pattern")
+	}
+
+	// Build a file lookup: global index -> source filename.
+	fileMap := make([]string, len(metaObjects))
+	objects := make([]any, len(metaObjects))
+	for i, mo := range metaObjects {
+		objects[i] = mo.Value
+		fileMap[i] = mo.File
+	}
+
+	results := explore.Find(objects, pattern, explore.FindOpts{CaseInsensitive: true, First: limit})
+
+	// Populate File field from our metadata.
+	for i := range results {
+		if results[i].Index >= 0 && results[i].Index < len(fileMap) {
+			results[i].File = fileMap[results[i].Index]
+		}
+	}
+
+	if f.formatSet {
+		items := make([]any, len(results))
+		for i, r := range results {
+			val := r.Value
+			if len(val) > 200 {
+				val = val[:200] + "..."
+			}
+			items[i] = map[string]any{
+				"index": r.Index,
+				"path":  r.Path,
+				"value": val,
+				"file":  r.File,
+			}
+		}
+		return output.FormatOutput(os.Stdout, items, outOpts)
+	}
+	for _, r := range results {
+		val := r.Value
+		val = strings.ReplaceAll(val, "\n", " ")
+		val = strings.ReplaceAll(val, "\t", " ")
+		if len(val) > 120 {
+			val = val[:120] + "..."
+		}
+		file := ""
+		if f.showFile && r.File != "" {
+			file = fmt.Sprintf("[%s] ", r.File)
+		}
+		fmt.Fprintf(os.Stdout, " %s#%-6d %-30s %s\n", file, r.Index, r.Path, val)
+	}
+	if len(results) == 0 {
+		fmt.Println("No matches found.")
+	}
+	return nil
+}
+
 func runStats(objects []any, f flags, outOpts output.Opts) error {
 	stats := explore.ComputeStats(objects)
 	if f.formatSet {
@@ -478,6 +539,30 @@ func readAll(files []string, f flags) ([]any, error) {
 			break
 		}
 		objects = append(objects, obj.Value)
+	}
+	return objects, nil
+}
+
+// readAllWithMeta reads all objects from the given files, preserving source metadata.
+func readAllWithMeta(files []string, f flags) ([]input.Object, error) {
+	reader, err := input.NewReader(files, input.ReaderOpts{
+		Strict:    f.strict,
+		Silent:    f.silent,
+		MaxErrors: f.maxErrors,
+	})
+	if err != nil {
+		return nil, err
+	}
+	var objects []input.Object
+	for {
+		obj, err := reader.Next()
+		if err != nil {
+			return nil, err
+		}
+		if obj == nil {
+			break
+		}
+		objects = append(objects, *obj)
 	}
 	return objects, nil
 }

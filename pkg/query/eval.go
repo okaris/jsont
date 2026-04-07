@@ -1,6 +1,7 @@
 package query
 
 import (
+	"encoding/json"
 	"fmt"
 	"math"
 	"regexp"
@@ -565,7 +566,12 @@ func evalFuncCall(e *FuncCall, data any) (any, error) {
 		case nil:
 			return nil, nil
 		default:
-			return nil, fmt.Errorf("length: unsupported type %T", v)
+			// Coerce to JSON string and return its length.
+			b, err := json.Marshal(v)
+			if err != nil {
+				return nil, fmt.Errorf("length: unsupported type %T", v)
+			}
+			return float64(len(string(b))), nil
 		}
 
 	case "lower":
@@ -1097,7 +1103,12 @@ func toString(v any) string {
 		}
 		return "false"
 	default:
-		return fmt.Sprintf("%v", v)
+		// For complex types (arrays, maps), produce JSON.
+		b, err := json.Marshal(v)
+		if err != nil {
+			return fmt.Sprintf("%v", v)
+		}
+		return string(b)
 	}
 }
 
@@ -1136,11 +1147,18 @@ func evalStringArg(e *FuncCall, idx int, data any) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	s, ok := v.(string)
-	if !ok {
-		return "", fmt.Errorf("%s: argument %d must be string, got %T", e.Name, idx, v)
+	if v == nil {
+		return "", fmt.Errorf("%s: argument %d is null", e.Name, idx)
 	}
-	return s, nil
+	if s, ok := v.(string); ok {
+		return s, nil
+	}
+	// Coerce non-string types to their JSON representation.
+	b, err := json.Marshal(v)
+	if err != nil {
+		return "", fmt.Errorf("%s: argument %d: %w", e.Name, idx, err)
+	}
+	return string(b), nil
 }
 
 func evalFloatArg(e *FuncCall, idx int, data any) (float64, error) {

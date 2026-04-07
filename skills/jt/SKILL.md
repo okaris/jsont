@@ -380,61 +380,73 @@ jt data.jsonl head 3 --json
 
 ---
 
-## Common Recipes
+## Handling mixed-type fields
 
-### Explore unknown data
+Real-world JSON often has fields that are sometimes a string, sometimes an array (e.g., `.message.content`). jt handles this:
+
+- `contains` works on both strings (substring) and arrays (element match)
+- `substr()`, `lower()`, `replace()`, `to_string()` auto-coerce non-strings to JSON — they never return null on wrong types
+- Use `type(.field)` to check: `where .content is string` or `where .content is array`
 
 ```bash
-jt mystery.jsonl schema          # what fields exist, what types?
-jt mystery.jsonl tree            # hierarchical structure
-jt mystery.jsonl head 3          # peek at actual objects
-jt mystery.jsonl stats           # distributions, nulls, shapes
-jt mystery.jsonl find "error"    # hunt for problems
+# Filter works regardless of content type (string or array)
+jt data.jsonl 'where .message.content contains "error" first 10'
+
+# Display mixed content as truncated string — always works
+jt data.jsonl 'where .message.content contains "failed" select substr(to_string(.message.content), 0, 150) as preview, .timestamp sort by .timestamp desc first 30' --table
 ```
 
-### Log analysis
+This pattern — `substr(to_string(.field), 0, N) as name` — is the universal way to display any field as a truncated readable string in table output, regardless of its type.
+
+---
+
+## Complex Query Examples
+
+These are real-world one-liners. Use them as templates.
+
+### Search conversation logs (Claude Code JSONL)
 
 ```bash
-# Error rate by model
-jt logs.jsonl 'count by .model where .status == "failed"'
+# Find user messages containing a term, show truncated preview
+jt *.jsonl 'where .type == "user" and .message.content contains "error" select substr(replace(to_string(.message.content), "\n", " "), 0, 150) as msg, .timestamp sort by .timestamp desc first 30' --table
 
-# Slow requests
-jt logs.jsonl 'where .latency_ms > 5000 sort by .latency_ms desc first 20' --table
+# Count messages by type
+jt *.jsonl 'count by .type'
 
-# Find timeouts in nested content
-jt logs.jsonl 'where ..message contains "timeout" select .id, ..message'
+# Find all distinct session IDs with errors
+jt *.jsonl 'where .message.content contains "failed" distinct .sessionId'
+
+# Search across files, show source file
+jt *.jsonl find "timeout" --show-file
+```
+
+### API logs / run data
+
+```bash
+# Error rate by model, sorted
+jt runs.jsonl 'count by .model where .status == "failed" sort by count desc' --table
+
+# Slow requests with error details
+jt runs.jsonl 'where .latency_ms > 5000 select .id, .model, .latency_ms, coalesce(.error.message, "ok") as err sort by .latency_ms desc first 20' --table
+
+# P95 latency by model
+jt runs.jsonl 'select .model, count(), avg(.latency_ms) as avg_ms, max(.latency_ms) as max_ms group by .model sort by count() desc' --table
 
 # Export errors to CSV
-jt logs.jsonl 'where .error exists select .id, .error.message, .error.code' --csv > errors.csv
+jt runs.jsonl 'where .error exists select .id, .error.message, .error.code, .timestamp' --csv > errors.csv
 ```
 
 ### Data inspection
 
 ```bash
-# What types does a field have?
-jt data.jsonl 'select type(.content) as t' | jt 'count by .t'
+# What types does a field have across objects?
+jt data.jsonl 'select type(.content) as t distinct .t'
 
 # Find nulls
 jt data.jsonl 'where .email is null count'
 
-# Unique values
-jt data.jsonl 'distinct .status'
-
-# Field frequency
-jt data.jsonl schema | grep -i error
-```
-
-### Pipeline composition
-
-```bash
-# jt as source → other tools
-jt data.jsonl 'select .email' --raw | sort -u | wc -l
-
-# other tools → jt as sink
-curl -s api.example.com/data | jt 'where .active == true first 10'
-
-# chain jt commands
-jt data.jsonl 'where .error exists' | jt 'count by .error.code'
+# Objects with unexpected types
+jt data.jsonl 'where .age is string select .id, .age first 10'
 ```
 
 ---
@@ -443,15 +455,11 @@ jt data.jsonl 'where .error exists' | jt 'count by .error.code'
 
 | Task | Use |
 |---|---|
-| "What's in this file?" | `jt file schema` or `jt file tree` |
-| "Show me a few objects" | `jt file head 3` |
-| "How many objects?" | `jt file count` |
+| "What's in this file?" | `jt file schema` |
 | "Find something" | `jt file find "text"` |
-| "Filter by condition" | `jt file 'where .field == "value"'` |
-| "Extract specific fields" | `jt file 'select .a, .b, .c'` |
-| "Top N by some field" | `jt file 'sort by .field desc first N'` |
+| "Filter + display" | `jt file 'where .x == "y" select .a, .b first 20' --table` |
 | "Count per category" | `jt file 'count by .field'` |
-| "Stats on numeric field" | `jt file stats` |
-| "Export to CSV" | `jt file 'select ...' --csv` |
-| "Search nested data" | `jt file 'where ..key contains "text"'` |
-| "Aggregate (sum/avg)" | `jt file 'select avg(.field)'` |
+| "Top N by metric" | `jt file 'sort by .field desc first N' --table` |
+| "Search nested data" | `jt file find "text" --show-file` |
+| "Mixed-type display" | `jt file 'select substr(to_string(.field), 0, 150) as preview' --table` |
+| "Export" | `jt file 'select ...' --csv > out.csv` |

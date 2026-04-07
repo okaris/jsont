@@ -22,14 +22,14 @@ commands.
 ## Install
 
 ```bash
-# One-liner (downloads precompiled binary, no Go required) — installs both jsont and jt
 curl -fsSL i.jsont.sh | sh
-
-# Or with Go
-go install github.com/okaris/jsont/cmd/jt@latest
 ```
 
-Custom install directory: `JSONT_INSTALL_DIR=~/.local/bin curl -fsSL ... | sh`
+Or with Go:
+
+```bash
+go install github.com/okaris/jsont/cmd/jt@latest
+```
 
 ## Reference files
 

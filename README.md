@@ -7,10 +7,12 @@ Also available as `jt` (alias installed automatically).
 ## Install
 
 ```bash
-# Precompiled binary (Linux, macOS, Windows) — installs both jsont and jt
 curl -fsSL i.jsont.sh | sh
+```
 
-# Or with Go
+Or with Go:
+
+```bash
 go install github.com/okaris/jsont/cmd/jt@latest
 ```
 

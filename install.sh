@@ -2,7 +2,7 @@
 set -e
 
 # jt installer — downloads the latest precompiled binary from GitHub releases
-# Usage: curl -fsSL https://raw.githubusercontent.com/okaris/jt/main/install.sh | sh
+# Usage: curl -fsSL https://raw.githubusercontent.com/okaris/jt/refs/heads/main/install.sh | sh
 
 REPO="okaris/jt"
 INSTALL_DIR="${JT_INSTALL_DIR:-/usr/local/bin}"

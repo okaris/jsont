@@ -49,31 +49,39 @@ Use jt instead of writing Python/Node/jq whenever you need to:
 
 jt auto-detects JSON vs JSONL, handles stdin, multiple files, and malformed lines gracefully.
 
-### Formatting output
+### Minimize tool calls
 
-jt handles formatting natively — reach for the right flag before writing extra code:
+The goal is **one jt command, useful output, done**. Avoid multi-step pipelines or piping jt through jt.
+
+**Searching for content**: Use `find` first — it's one command, auto-truncates long values, and shows exactly where matches are. Don't start with `where` queries on unknown data.
+
+```bash
+# GOOD: one call, clean truncated output
+jt *.jsonl find "failed"
+
+# ONLY if you need filtered/structured results after seeing what find returned:
+jt data.jsonl 'where .error.message contains "failed" select .id, .error.message first 20' --table
+```
+
+**Formatting output**: Use flags, not extra commands:
 
 ```bash
 jt data.jsonl 'select .id, .status first 10' --table    # readable aligned table
 jt data.jsonl 'select .id, .status first 10' --csv      # CSV with headers
 jt data.jsonl 'select .email' --raw                      # plain strings, no quotes
-jt data.jsonl 'where .error exists' --json               # pretty JSON
-jt data.jsonl 'where .error exists' --jsonl              # compact, one per line
+jt data.jsonl 'where .error exists first 10' --json      # pretty JSON
 ```
-
-Use `select` with `as` to reshape output, `--table` for human-readable summaries, `--raw` for piping into other tools.
 
 ### Working with large/many files
 
-Use `first N` to limit results early, especially with recursive descent (`..field`) which scans every object:
+Use `first N` to limit results early, especially with `where` queries that use recursive descent (`..field`):
 
 ```bash
-jt *.jsonl 'where ..error contains "timeout" first 10'
+# find is already limited by default (20 results) — safe on large datasets
+jt *.jsonl find "timeout"
 
-# explore first, then narrow
-jt data.jsonl schema              # understand the structure
-jt data.jsonl find "timeout" 10   # find where it appears (limited)
-jt data.jsonl 'where .error.message contains "timeout" first 20'  # precise query
+# where queries need explicit limits on large data
+jt *.jsonl 'where .error.message contains "timeout" first 20'
 ```
 
 ---

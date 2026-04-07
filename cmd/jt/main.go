@@ -359,16 +359,32 @@ func runFind(objects []any, pattern string, limit int, f flags, outOpts output.O
 	if f.formatSet {
 		items := make([]any, len(results))
 		for i, r := range results {
+			val := r.Value
+			if len(val) > 200 {
+				val = val[:200] + "..."
+			}
 			items[i] = map[string]any{
 				"index": r.Index,
 				"path":  r.Path,
-				"value": r.Value,
+				"value": val,
+				"file":  r.File,
 			}
 		}
 		return output.FormatOutput(os.Stdout, items, outOpts)
 	}
 	for _, r := range results {
-		fmt.Fprintf(os.Stdout, " Object #%-6d %-30s %q\n", r.Index, r.Path, r.Value)
+		val := r.Value
+		// Collapse newlines and truncate for readable output
+		val = strings.ReplaceAll(val, "\n", " ")
+		val = strings.ReplaceAll(val, "\t", " ")
+		if len(val) > 120 {
+			val = val[:120] + "..."
+		}
+		file := ""
+		if f.showFile && r.File != "" {
+			file = fmt.Sprintf("[%s] ", r.File)
+		}
+		fmt.Fprintf(os.Stdout, " %s#%-6d %-30s %s\n", file, r.Index, r.Path, val)
 	}
 	if len(results) == 0 {
 		fmt.Println("No matches found.")

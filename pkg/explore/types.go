@@ -45,6 +45,7 @@ type FindResult struct {
 	Index int    // object index
 	Path  string // dot-path where found
 	Value string // the matching value
+	File  string // source filename (if available)
 }
 
 // SchemaOpts configures schema inference.

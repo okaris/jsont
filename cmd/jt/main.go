@@ -35,6 +35,8 @@ type flags struct {
 	silent    bool
 	strict    bool
 	maxErrors int
+	depth     int
+	depthSet  bool
 	verbose   bool
 	version   bool
 	help      bool
@@ -219,12 +221,35 @@ func runQuery(objects []any, queryStr string, f flags, outOpts output.Opts) erro
 	return output.FormatOutput(os.Stdout, result.Objects, outOpts)
 }
 
+func pathDepth(path string) int {
+	if path == "" {
+		return 0
+	}
+	// Count dots in path: ".a.b.c" = depth 3, ".a" = depth 1
+	return strings.Count(path, ".")
+}
+
 func runSchema(objects []any, f flags, outOpts output.Opts) error {
 	schema := explore.InferSchema(objects, explore.SchemaOpts{MaxExamples: 5})
+
+	// Apply depth filter (default 4)
+	maxDepth := 4
+	if f.depthSet {
+		maxDepth = f.depth
+	}
+	var filtered []explore.SchemaField
+	skipped := 0
+	for _, sf := range schema {
+		if pathDepth(sf.Path) <= maxDepth {
+			filtered = append(filtered, sf)
+		} else {
+			skipped++
+		}
+	}
+
 	if f.formatSet {
-		// Output as JSON if explicitly requested.
 		var items []any
-		for _, sf := range schema {
+		for _, sf := range filtered {
 			items = append(items, map[string]any{
 				"field":     sf.Path,
 				"types":     sf.Types,
@@ -237,7 +262,7 @@ func runSchema(objects []any, f flags, outOpts output.Opts) error {
 	// Text-based rendering.
 	fmt.Fprintf(os.Stdout, " %-30s %-20s %-12s %s\n", "Field", "Type", "Frequency", "Example Values")
 	fmt.Fprintf(os.Stdout, " %s\n", strings.Repeat("\u2500", 80))
-	for _, sf := range schema {
+	for _, sf := range filtered {
 		typeStr := strings.Join(sf.Types, "|")
 		// Filter out "array" if a typed array is present.
 		if len(sf.Types) > 1 {
@@ -259,6 +284,9 @@ func runSchema(objects []any, f flags, outOpts output.Opts) error {
 		freq := fmt.Sprintf("%.0f%%", sf.Frequency*100)
 		examples := formatExamples(sf.Examples, 3)
 		fmt.Fprintf(os.Stdout, " %-30s %-20s %-12s %s\n", sf.Path, typeStr, freq, examples)
+	}
+	if skipped > 0 {
+		fmt.Fprintf(os.Stdout, "\n %d fields hidden at depth > %d (use --depth N to show more)\n", skipped, maxDepth)
 	}
 	return nil
 }
@@ -461,6 +489,12 @@ func runFindWithMeta(metaObjects []input.Object, pattern string, limit int, f fl
 
 func runStats(objects []any, f flags, outOpts output.Opts) error {
 	stats := explore.ComputeStats(objects)
+
+	maxDepth := 4
+	if f.depthSet {
+		maxDepth = f.depth
+	}
+
 	if f.formatSet {
 		item := map[string]any{
 			"count":   stats.Count,
@@ -473,10 +507,15 @@ func runStats(objects []any, f flags, outOpts output.Opts) error {
 	fmt.Fprintf(os.Stdout, " Schemas:   %d distinct shapes\n", stats.SchemaCount)
 	fmt.Fprintf(os.Stdout, " Fields:    %d unique paths\n", stats.Fields)
 
+	skipped := 0
 	if len(stats.NumericStats) > 0 {
 		fmt.Fprintln(os.Stdout, "\n Numeric fields:")
 		paths := sortedKeys(stats.NumericStats)
 		for _, path := range paths {
+			if pathDepth(path) > maxDepth {
+				skipped++
+				continue
+			}
 			ns := stats.NumericStats[path]
 			fmt.Fprintf(os.Stdout, "   %-20s min=%.4g  median=%.4g  p95=%.4g  p99=%.4g  max=%.4g\n",
 				path, ns.Min, ns.Median, ns.P95, ns.P99, ns.Max)
@@ -487,6 +526,10 @@ func runStats(objects []any, f flags, outOpts output.Opts) error {
 		fmt.Fprintln(os.Stdout, "\n String fields:")
 		paths := sortedKeys(stats.StringStats)
 		for _, path := range paths {
+			if pathDepth(path) > maxDepth {
+				skipped++
+				continue
+			}
 			ss := stats.StringStats[path]
 			top := topN(ss.TopValues, 3)
 			fmt.Fprintf(os.Stdout, "   %-20s %d unique, top: %s\n", path, ss.Unique, top)
@@ -497,10 +540,17 @@ func runStats(objects []any, f flags, outOpts output.Opts) error {
 		fmt.Fprintln(os.Stdout, "\n Nulls / missing:")
 		paths := sortedKeys(stats.NullCounts)
 		for _, path := range paths {
+			if pathDepth(path) > maxDepth {
+				skipped++
+				continue
+			}
 			cnt := stats.NullCounts[path]
 			pct := float64(cnt) / float64(stats.Count) * 100
 			fmt.Fprintf(os.Stdout, "   %-20s %.0f%% missing (%d)\n", path, pct, cnt)
 		}
+	}
+	if skipped > 0 {
+		fmt.Fprintf(os.Stdout, "\n %d fields hidden at depth > %d (use --depth N to show more)\n", skipped, maxDepth)
 	}
 	return nil
 }
@@ -627,6 +677,14 @@ func parseFlags(args []string) (flags, []string) {
 			f.version = true
 		case "--help", "-h":
 			f.help = true
+		case "--depth":
+			if i+1 < len(args) {
+				i++
+				if n, err := strconv.Atoi(args[i]); err == nil {
+					f.depth = n
+					f.depthSet = true
+				}
+			}
 		case "--max-errors":
 			if i+1 < len(args) {
 				i++
@@ -737,6 +795,7 @@ Other flags:
   --flatten         Flatten nested objects
   --silent, -s      Suppress warnings
   --strict          Error on malformed lines
+  --depth N         Max field depth for schema/stats (default 4)
   --max-errors N    Abort after N errors (default 100)
   --verbose         Show timing info
   --version, -v     Show version

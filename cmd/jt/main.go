@@ -278,6 +278,12 @@ func formatExamples(examples []any, max int) string {
 			continue
 		}
 		seen[s] = true
+		// Truncate long examples
+		s = strings.ReplaceAll(s, "\n", " ")
+		s = strings.ReplaceAll(s, "\t", " ")
+		if len(s) > 50 {
+			s = s[:50] + "..."
+		}
 		parts = append(parts, s)
 		if len(parts) >= max {
 			break

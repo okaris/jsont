@@ -23,7 +23,7 @@ commands.
 
 ```bash
 # One-liner (downloads precompiled binary, no Go required) — installs both jsont and jt
-curl -fsSL https://raw.githubusercontent.com/okaris/jsont/refs/heads/main/install.sh | sh
+curl -fsSL i.jsont.sh | sh
 
 # Or with Go
 go install github.com/okaris/jsont/cmd/jt@latest

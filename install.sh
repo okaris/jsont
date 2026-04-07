@@ -2,7 +2,7 @@
 set -e
 
 # jsont installer — downloads the latest precompiled binary from GitHub releases
-# Usage: curl -fsSL https://raw.githubusercontent.com/okaris/jsont/refs/heads/main/install.sh | sh
+# Usage: curl -fsSL i.jsont.sh | sh
 
 REPO="okaris/jsont"
 INSTALL_DIR="${JSONT_INSTALL_DIR:-/usr/local/bin}"

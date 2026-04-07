@@ -31,12 +31,28 @@ Or with Go:
 go install github.com/okaris/jsont/cmd/jt@latest
 ```
 
+## Start here — pick the right command first
+
+| I want to... | Command | Notes |
+|---|---|---|
+| Find something in data | `jt file find "text"` | **Always start here.** 20 results, truncated, shows paths. |
+| Understand the structure | `jt file schema` | Shows fields, types, frequencies. |
+| Filter + display | `jt file 'where .x == "y" select .a, .b first 20' --table` | Use `first N` on large data. |
+| Display mixed-type fields | `select substr(to_string(.field), 0, 150) as preview` | Universal pattern — never nulls. |
+| Count per category | `jt file 'count by .field'` | Append `count` to any query — don't pipe. |
+| Search across files | `jt *.jsonl find "text" --show-file` | Shows source filename per match. |
+| Export | `jt file 'select ...' --csv > out.csv` | Also: `--table`, `--json`, `--raw` |
+
+**Two-call pattern for any search task:**
+1. `jt *.jsonl find "failed" --show-file` — see what's there, which files, which paths
+2. `jt *.jsonl 'where .message.content contains "failed" select substr(to_string(.message.content), 0, 150) as preview, .timestamp sort by .timestamp desc first 30' --table` — structured view
+
 ## Reference files
 
 For detailed behavior beyond this guide, read these as needed:
-- `references/large-data-playbook.md` — Step-by-step guide for working with large/many files. Anti-patterns to avoid, common task recipes, output format cheat sheet. **Read this first when dealing with big or unfamiliar datasets.**
-- `references/query-language.md` — Full operator precedence, all operators with type behavior, all functions with signatures and return types, dot-path edge cases, type coercion rules. Read when constructing complex queries.
-- `references/explore-commands.md` — Detailed output formats for each explore command, sampling behavior, JSON output mode. Read when you need precise details on what a command outputs.
+- `references/large-data-playbook.md` — Step-by-step for large/many files, anti-patterns, output format cheat sheet.
+- `references/query-language.md` — Full operator precedence, all operators/functions with type behavior, edge cases.
+- `references/explore-commands.md` — Detailed explore command output formats and options.
 
 ## When to use jt
 
@@ -449,17 +465,3 @@ jt data.jsonl 'where .email is null count'
 jt data.jsonl 'where .age is string select .id, .age first 10'
 ```
 
----
-
-## Key Decision Guide
-
-| Task | Use |
-|---|---|
-| "What's in this file?" | `jt file schema` |
-| "Find something" | `jt file find "text"` |
-| "Filter + display" | `jt file 'where .x == "y" select .a, .b first 20' --table` |
-| "Count per category" | `jt file 'count by .field'` |
-| "Top N by metric" | `jt file 'sort by .field desc first N' --table` |
-| "Search nested data" | `jt file find "text" --show-file` |
-| "Mixed-type display" | `jt file 'select substr(to_string(.field), 0, 150) as preview' --table` |
-| "Export" | `jt file 'select ...' --csv > out.csv` |

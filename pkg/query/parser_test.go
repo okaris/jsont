@@ -910,6 +910,110 @@ func TestParse(t *testing.T) {
 				},
 			},
 		},
+
+		// 24. Array index with field access (FieldAccess)
+		{
+			name:  "array index then field access",
+			input: `.items[0].name`,
+			want: &Query{
+				Select: &SelectClause{
+					Fields: []SelectField{
+						{Expr: FieldAccess{
+							Expr:  ArrayIndex{Expr: DotPath{Path: ".items"}, Index: 0},
+							Field: ".name",
+						}},
+					},
+				},
+			},
+		},
+		{
+			name:  "array index then nested field access",
+			input: `.data[0].error.message`,
+			want: &Query{
+				Select: &SelectClause{
+					Fields: []SelectField{
+						{Expr: FieldAccess{
+							Expr:  ArrayIndex{Expr: DotPath{Path: ".data"}, Index: 0},
+							Field: ".error.message",
+						}},
+					},
+				},
+			},
+		},
+		{
+			name:  "chained array index and field access",
+			input: `.a[0].b[1].c`,
+			want: &Query{
+				Select: &SelectClause{
+					Fields: []SelectField{
+						{Expr: FieldAccess{
+							Expr: ArrayIndex{
+								Expr: FieldAccess{
+									Expr:  ArrayIndex{Expr: DotPath{Path: ".a"}, Index: 0},
+									Field: ".b",
+								},
+								Index: 1,
+							},
+							Field: ".c",
+						}},
+					},
+				},
+			},
+		},
+		{
+			name:  "where with array index field access",
+			input: `where .message.content[0].type == "tool_use"`,
+			want: &Query{
+				Where: &WhereClause{
+					Condition: BinaryOp{
+						Left: FieldAccess{
+							Expr:  ArrayIndex{Expr: DotPath{Path: ".message.content"}, Index: 0},
+							Field: ".type",
+						},
+						Op:    "==",
+						Right: StringLiteral{Value: "tool_use"},
+					},
+				},
+			},
+		},
+		{
+			name:  "select and where with array index field access",
+			input: `where .message.content[0].type == "tool_use" select .message.content[0].name`,
+			want: &Query{
+				Where: &WhereClause{
+					Condition: BinaryOp{
+						Left: FieldAccess{
+							Expr:  ArrayIndex{Expr: DotPath{Path: ".message.content"}, Index: 0},
+							Field: ".type",
+						},
+						Op:    "==",
+						Right: StringLiteral{Value: "tool_use"},
+					},
+				},
+				Select: &SelectClause{
+					Fields: []SelectField{
+						{Expr: FieldAccess{
+							Expr:  ArrayIndex{Expr: DotPath{Path: ".message.content"}, Index: 0},
+							Field: ".name",
+						}},
+					},
+				},
+			},
+		},
+		{
+			name:  "array iterator then field access",
+			input: `.items[].name`,
+			want: &Query{
+				Select: &SelectClause{
+					Fields: []SelectField{
+						{Expr: FieldAccess{
+							Expr:  ArrayIterator{Expr: DotPath{Path: ".items"}},
+							Field: ".name",
+						}},
+					},
+				},
+			},
+		},
 	}
 
 	for _, tt := range tests {

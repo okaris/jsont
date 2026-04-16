@@ -108,6 +108,13 @@ func selectKeyName(f query.SelectField) string {
 		}
 		// For nested paths like "address.city", use the full path as key
 		return path
+	case query.FieldAccess:
+		// Use the trailing field path: .items[0].name -> "name"
+		path := e.Field
+		if strings.HasPrefix(path, ".") {
+			path = path[1:]
+		}
+		return path
 	case query.FuncCall:
 		return e.Name
 	default:

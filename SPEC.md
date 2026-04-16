@@ -36,6 +36,7 @@ JSON arrays are automatically "unwrapped" into rows:
 jt items.jsonl 'select .name'
 jt items.json 'select .name'        # if items.json is [{"name":"a"}, ...]
 cat items.jsonl | jt 'select .name'
+cat items.jsonl | jt - 'select .name'    # explicit stdin with -
 ```
 
 ### Multiple files
@@ -259,6 +260,8 @@ jt data.jsonl '.name, .age'              # same as: select .name, .age
 .field                    — object field
 .field.nested             — nested access
 .field[0]                 — array index
+.field[0].nested          — field access after array index
+.field[0].a[1].b          — chained array index + field access
 .field[2:5]               — array slice (index 2 to 4)
 .field[-3:]               — last 3 elements
 .field[:2]                — first 2 elements
@@ -313,6 +316,14 @@ Aliasing:
 jt data.jsonl 'select .id, .error.message as err'
 ```
 
+Array index with field access:
+
+```bash
+jt data.jsonl 'select .items[0].name'                   # first element's name
+jt data.jsonl 'select .message.content[0].type'          # nested array + field
+jt data.jsonl 'select .rows[0].cells[1].value'           # chained: array → field → array → field
+```
+
 Computed fields:
 
 ```bash
@@ -343,6 +354,7 @@ jt data.jsonl 'where .status == "failed"'
 jt data.jsonl 'where .latency_ms > 1000'
 jt data.jsonl 'where .error exists'
 jt data.jsonl 'where .tags contains "urgent"'
+jt data.jsonl 'where .message.content[0].type == "tool_use"'    # array index in where
 ```
 
 #### Arithmetic operators

@@ -53,6 +53,26 @@ func Eval(expr Expr, data any) (any, error) {
 	case ArrayIterator:
 		return evalArrayIterator(&e, data)
 
+	// --- FieldAccess (e.g. .items[0].name) ---
+	case FieldAccess:
+		base, err := Eval(e.Expr, data)
+		if err != nil {
+			return nil, err
+		}
+		if base == nil {
+			return nil, nil
+		}
+		return evalDotPath(e.Field, base), nil
+	case *FieldAccess:
+		base, err := Eval(e.Expr, data)
+		if err != nil {
+			return nil, err
+		}
+		if base == nil {
+			return nil, nil
+		}
+		return evalDotPath(e.Field, base), nil
+
 	// --- BinaryOp ---
 	case *BinaryOp:
 		return evalBinaryOp(e, data)

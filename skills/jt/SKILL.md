@@ -184,6 +184,8 @@ jt <files...> '[select FIELDS] [where CONDITION] [sort by FIELD [asc|desc]] [gro
 .field                    — object field access
 .field.nested             — nested access
 .field[0]                 — array index
+.field[0].nested          — field access after array index
+.field[0].a[1].b          — chained array index + field access
 .field[-1]                — last element (negative index)
 .field[2:5]               — array slice
 .field[]                  — iterate all array elements
@@ -201,6 +203,8 @@ jt data.jsonl '.name'                                    # bare path = implicit 
 jt data.jsonl 'select .id, .error.message as err'        # alias
 jt data.jsonl 'select .id, .end - .start as duration'    # computed
 jt data.jsonl 'select .id, .price * .quantity as total'  # arithmetic
+jt data.jsonl 'select .items[0].name'                    # array index + field
+jt data.jsonl 'select .message.content[0].type'          # nested array + field
 jt data.jsonl 'select "\(.first) \(.last)" as name'      # string template
 jt data.jsonl 'select *'                                 # all fields (default)
 jt data.jsonl 'select .metadata.*'                       # wildcard
@@ -213,6 +217,7 @@ jt data.jsonl 'select .metadata.*'                       # wildcard
 jt data.jsonl 'where .status == "failed"'
 jt data.jsonl 'where .latency_ms > 1000'
 jt data.jsonl 'where .age >= 18 and .age <= 65'
+jt data.jsonl 'where .message.content[0].type == "tool_use"'  # array index in where
 
 # String operators
 jt data.jsonl 'where .name contains "error"'
@@ -391,7 +396,7 @@ jt data.jsonl head 3 --json
 - **Auto-detect**: `.json` (single object or array) vs `.jsonl` (newline-delimited)
 - **JSON arrays unwrapped**: `[{...}, {...}]` treated as rows automatically
 - **Multiple files**: `jt *.jsonl 'query'` — union of all files
-- **Stdin**: `cat data.jsonl | jt 'query'` or `curl api | jt schema`
+- **Stdin**: `cat data.jsonl | jt 'query'` or `cat data.jsonl | jt - 'query'` or `curl api | jt schema`
 - **Malformed lines**: skipped by default. `--strict` to error. `--silent` to suppress warnings.
 
 ---
@@ -425,6 +430,12 @@ These are real-world one-liners. Use them as templates.
 ```bash
 # Find user messages containing a term, show truncated preview
 jt *.jsonl 'where .type == "user" and .message.content contains "error" select substr(replace(to_string(.message.content), "\n", " "), 0, 150) as msg, .timestamp sort by .timestamp desc first 30' --table
+
+# Filter by tool type using array index field access
+jt *.jsonl 'where .message.content[0].type == "tool_use" select .message.content[0].name as tool first 20' --table
+
+# Count tool usage by name
+jt *.jsonl 'where .message.content[0].type == "tool_use" select .message.content[0].name as tool' --jsonl | jt - 'count by .tool' --table
 
 # Count messages by type
 jt *.jsonl 'count by .type'

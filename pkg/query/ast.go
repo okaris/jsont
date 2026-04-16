@@ -76,6 +76,13 @@ type ArraySlice struct {
 
 type ArrayIterator struct{ Expr Expr }
 
+// FieldAccess represents accessing a field on an expression result,
+// e.g. .items[0].name — FieldAccess{ArrayIndex{.items, 0}, ".name"}
+type FieldAccess struct {
+	Expr  Expr
+	Field string // dot-path suffix, e.g. ".name" or ".a.b"
+}
+
 // ── Literal expressions ──────────────────────────────────────────────
 
 type StringLiteral struct{ Value string }
@@ -159,6 +166,7 @@ func (RecursiveDescent) exprNode() {}
 func (ArrayIndex) exprNode()       {}
 func (ArraySlice) exprNode()       {}
 func (ArrayIterator) exprNode()    {}
+func (FieldAccess) exprNode()      {}
 func (StringLiteral) exprNode()    {}
 func (NumberLiteral) exprNode()    {}
 func (BoolLiteral) exprNode()      {}

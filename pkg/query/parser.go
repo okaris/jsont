@@ -581,52 +581,60 @@ func (p *parser) parsePostfixExpr() (Expr, error) {
 		return nil, err
 	}
 
-	for p.peek().Type == TOKEN_LBRACKET {
-		p.advance() // consume [
+	for {
+		if p.peek().Type == TOKEN_LBRACKET {
+			p.advance() // consume [
 
-		// Empty brackets: array iterator
-		if p.peek().Type == TOKEN_RBRACKET {
-			p.advance()
-			expr = ArrayIterator{Expr: expr}
-			continue
-		}
+			// Empty brackets: array iterator
+			if p.peek().Type == TOKEN_RBRACKET {
+				p.advance()
+				expr = ArrayIterator{Expr: expr}
+				continue
+			}
 
-		// Try to parse index or slice
-		// Could be: [N], [N:M], [N:], [:M], [-N:]
-		first, hasFirst, err := p.parseBracketNumber()
-		if err != nil {
-			return nil, err
-		}
-
-		if p.peek().Type == TOKEN_COLON {
-			// Slice
-			p.advance()
-			second, hasSecond, err := p.parseBracketNumber()
+			// Try to parse index or slice
+			// Could be: [N], [N:M], [N:], [:M], [-N:]
+			first, hasFirst, err := p.parseBracketNumber()
 			if err != nil {
 				return nil, err
 			}
-			if _, err := p.expect(TOKEN_RBRACKET); err != nil {
-				return nil, fmt.Errorf("expected ']'")
+
+			if p.peek().Type == TOKEN_COLON {
+				// Slice
+				p.advance()
+				second, hasSecond, err := p.parseBracketNumber()
+				if err != nil {
+					return nil, err
+				}
+				if _, err := p.expect(TOKEN_RBRACKET); err != nil {
+					return nil, fmt.Errorf("expected ']'")
+				}
+				slice := ArraySlice{Expr: expr}
+				if hasFirst {
+					v := first
+					slice.Start = &v
+				}
+				if hasSecond {
+					v := second
+					slice.End = &v
+				}
+				expr = slice
+			} else {
+				// Index
+				if !hasFirst {
+					return nil, fmt.Errorf("expected number in array index")
+				}
+				if _, err := p.expect(TOKEN_RBRACKET); err != nil {
+					return nil, fmt.Errorf("expected ']'")
+				}
+				expr = ArrayIndex{Expr: expr, Index: first}
 			}
-			slice := ArraySlice{Expr: expr}
-			if hasFirst {
-				v := first
-				slice.Start = &v
-			}
-			if hasSecond {
-				v := second
-				slice.End = &v
-			}
-			expr = slice
+		} else if p.peek().Type == TOKEN_DOT_PATH {
+			// Field access after bracket: .items[0].name
+			tok := p.advance()
+			expr = FieldAccess{Expr: expr, Field: tok.Literal}
 		} else {
-			// Index
-			if !hasFirst {
-				return nil, fmt.Errorf("expected number in array index")
-			}
-			if _, err := p.expect(TOKEN_RBRACKET); err != nil {
-				return nil, fmt.Errorf("expected ']'")
-			}
-			expr = ArrayIndex{Expr: expr, Index: first}
+			break
 		}
 	}
 

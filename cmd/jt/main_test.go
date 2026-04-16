@@ -674,6 +674,78 @@ func TestStdinPipe(t *testing.T) {
 	}
 }
 
+// --- Array Index Field Access ---
+
+func TestArrayIndexFieldAccess(t *testing.T) {
+	input := `{"message":{"content":[{"type":"tool_use","name":"Bash"},{"type":"text","text":"hello"}]}}
+{"message":{"content":[{"type":"text","text":"world"}]}}
+{"message":{"content":[{"type":"tool_use","name":"Read"}]}}
+`
+
+	t.Run("where_array_index_field_eq", func(t *testing.T) {
+		out, _, code := runJT(t, input, `where .message.content[0].type == "tool_use"`, "--jsonl")
+		if code != 0 {
+			t.Fatalf("exit code %d", code)
+		}
+		n := countJSONObjects(out)
+		if n != 2 {
+			t.Errorf("expected 2 tool_use objects, got %d", n)
+		}
+	})
+
+	t.Run("select_array_index_field", func(t *testing.T) {
+		out, _, code := runJT(t, input, `where .message.content[0].type == "tool_use" select .message.content[0].name`, "--jsonl")
+		if code != 0 {
+			t.Fatalf("exit code %d", code)
+		}
+		if !strings.Contains(out, "Bash") || !strings.Contains(out, "Read") {
+			t.Errorf("expected Bash and Read in output, got:\n%s", out)
+		}
+	})
+
+	t.Run("chained_array_index_field", func(t *testing.T) {
+		chainInput := `{"a":[{"b":[{"c":42}]}]}
+`
+		out, _, code := runJT(t, chainInput, `select .a[0].b[0].c`, "--jsonl")
+		if code != 0 {
+			t.Fatalf("exit code %d", code)
+		}
+		if !strings.Contains(out, "42") {
+			t.Errorf("expected 42 in output, got:\n%s", out)
+		}
+	})
+}
+
+// --- Stdin with explicit dash ---
+
+func TestStdinExplicitDash(t *testing.T) {
+	input := `{"type":"x"}
+{"type":"y"}
+{"type":"x"}
+`
+
+	t.Run("dash_count_by", func(t *testing.T) {
+		out, _, code := runJT(t, input, "-", "count by .type", "--jsonl")
+		if code != 0 {
+			t.Fatalf("exit code %d", code)
+		}
+		if !strings.Contains(out, `"x"`) || !strings.Contains(out, `"y"`) {
+			t.Errorf("expected x and y in count by output, got:\n%s", out)
+		}
+	})
+
+	t.Run("dash_where", func(t *testing.T) {
+		out, _, code := runJT(t, input, "-", `where .type == "x"`, "--jsonl")
+		if code != 0 {
+			t.Fatalf("exit code %d", code)
+		}
+		n := countJSONObjects(out)
+		if n != 2 {
+			t.Errorf("expected 2 objects, got %d", n)
+		}
+	})
+}
+
 // --- Error Cases ---
 
 func TestErrorCases(t *testing.T) {

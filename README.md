@@ -30,6 +30,14 @@ jt data.jsonl 'where .status == "failed"'
 jt data.jsonl 'select .id, .model where .latency_ms > 1000 sort by .latency_ms desc first 10'
 jt data.jsonl 'count by .model'
 
+# Array index + field access — reach into nested structures
+jt data.jsonl 'where .message.content[0].type == "tool_use" select .message.content[0].name'
+jt data.jsonl 'select .items[0].price, .items[-1].price as last_price'
+
+# Stdin — implicit or explicit with -
+cat data.jsonl | jt 'where .error exists'
+cat data.jsonl | jt - 'count by .status'
+
 # Output formats
 jt data.jsonl 'select .id, .status' --table
 jt data.jsonl 'where .error exists' --csv > errors.csv

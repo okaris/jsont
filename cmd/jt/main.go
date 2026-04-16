@@ -58,7 +58,7 @@ func run(args []string) error {
 	var files []string
 	var rest []string
 	for _, arg := range positional {
-		if fileExists(arg) {
+		if arg == "-" || fileExists(arg) {
 			files = append(files, arg)
 		} else {
 			rest = append(rest, arg)

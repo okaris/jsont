@@ -156,6 +156,82 @@ func TestEvalDotPath(t *testing.T) {
 	}
 }
 
+// ── TestEvalFieldAccess ─────────────────────────────────────────────
+
+func TestEvalFieldAccess(t *testing.T) {
+	tests := []struct {
+		name string
+		json string
+		expr Expr
+		want any
+	}{
+		{
+			name: "array index then field",
+			json: `{"items":[{"name":"alice"},{"name":"bob"}]}`,
+			expr: FieldAccess{
+				Expr:  ArrayIndex{Expr: DotPath{Path: ".items"}, Index: 0},
+				Field: ".name",
+			},
+			want: "alice",
+		},
+		{
+			name: "array index then nested field",
+			json: `{"data":[{"error":{"message":"timeout"}}]}`,
+			expr: FieldAccess{
+				Expr:  ArrayIndex{Expr: DotPath{Path: ".data"}, Index: 0},
+				Field: ".error.message",
+			},
+			want: "timeout",
+		},
+		{
+			name: "chained array index and field",
+			json: `{"a":[{"b":[{"c":42}]}]}`,
+			expr: FieldAccess{
+				Expr: ArrayIndex{
+					Expr: FieldAccess{
+						Expr:  ArrayIndex{Expr: DotPath{Path: ".a"}, Index: 0},
+						Field: ".b",
+					},
+					Index: 0,
+				},
+				Field: ".c",
+			},
+			want: float64(42),
+		},
+		{
+			name: "field access on nil returns nil",
+			json: `{"a":[]}`,
+			expr: FieldAccess{
+				Expr:  ArrayIndex{Expr: DotPath{Path: ".a"}, Index: 5},
+				Field: ".name",
+			},
+			want: nil,
+		},
+		{
+			name: "negative index then field",
+			json: `{"items":[{"name":"first"},{"name":"last"}]}`,
+			expr: FieldAccess{
+				Expr:  ArrayIndex{Expr: DotPath{Path: ".items"}, Index: -1},
+				Field: ".name",
+			},
+			want: "last",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			data := unmarshal(t, tt.json)
+			got, err := Eval(tt.expr, data)
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if !deepEqual(got, tt.want) {
+				t.Errorf("got %v (%T), want %v (%T)", got, got, tt.want, tt.want)
+			}
+		})
+	}
+}
+
 // ── TestEvalRecursiveDescent ─────────────────────────────────────────
 
 func TestEvalRecursiveDescent(t *testing.T) {
